@@ -1,0 +1,10 @@
+.env
+/node_modules/
+/push_data/
+
+scripts/testQuantify.js
+scripts/simulateCleanupBug.js
+scripts/inspectDb.js
+scripts/inspectData.js
+scripts/setupDb.js
+scripts/generateReport.py
