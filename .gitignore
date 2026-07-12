@@ -6,5 +6,9 @@ scripts/testQuantify.js
 scripts/simulateCleanupBug.js
 scripts/inspectDb.js
 scripts/inspectData.js
-scripts/setupDb.js
+
 scripts/generateReport.py
+scripts/optimization info.md
+scripts/testPhase1.js
+scripts/testPhase2.js  
+MANUAL_TESTING_GUIDE.md

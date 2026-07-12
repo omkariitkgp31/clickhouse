@@ -114,46 +114,56 @@ async function getPreviousRecords(deviceRecordsByDevice) {
     /**
      * this function retrieves the most recent telemetry record
      * for each device before the first record in the provided 
-     * deviceRecordsByDevice map.
-     * 
+     * deviceRecordsByDevice map, using a batched query to avoid N+1 database calls.
      */
-    const previousRecords = new Map();//this holds data in form of key val 
-    await Promise.all(
-        Array.from(deviceRecordsByDevice.entries())
-            .map(async ([deviceId, records]) => {
-                const firstTimestamp =
-                    records[0].timestamp;
+    const previousRecords = new Map();
+    const entries = Array.from(deviceRecordsByDevice.entries());
 
-                const result =
-                    await clickhouse.query({
-                        query: `
-                            SELECT
-                                deviceId,
-                                timestamp
-                            FROM telemetry.raw_telemetry
-                            WHERE deviceId = {deviceId:String}
-                              AND timestamp < parseDateTime64BestEffort({timestamp:String}, 3) //this line converts the provided timestamp string into a DateTime64 format with 3 decimal places of precision, which is suitable for comparison with the timestamp column in the ClickHouse database. 
-                            ORDER BY timestamp DESC
-                            LIMIT 1
-                        `,
-                        query_params: {
-                            deviceId,
-                            timestamp: firstTimestamp
-                        },
-                        format: "JSONEachRow"
-                    });
+    if (entries.length === 0) {
+        return previousRecords;
+    }
 
-                const rows =
-                    await result.json();
+    const BATCH_SIZE = 100; // Limit OR-conditions chunk size to avoid exceeding ClickHouse HTTP parameters limit (Poco Form Limit)
 
-                if (rows.length > 0) {
-                    previousRecords.set(
-                        deviceId,
-                        rows[0]
-                    );
-                }
-            })
-    );
+    for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+        const chunk = entries.slice(i, i + BATCH_SIZE);
+        const query_params = {};
+        const orConditions = [];
+
+        chunk.forEach(([deviceId, records], index) => {
+            const firstTimestamp = records[0].timestamp;
+            const devParam = `deviceId${index}`;
+            const tsParam = `timestamp${index}`;
+
+            query_params[devParam] = deviceId;
+            query_params[tsParam] = firstTimestamp;
+
+            orConditions.push(
+                `(deviceId = {${devParam}:String} AND timestamp < parseDateTime64BestEffort({${tsParam}:String}, 3))`
+            );
+        });
+
+        const result = await clickhouse.query({
+            query: `
+                SELECT
+                    deviceId,
+                    max(timestamp) as lastTimestamp
+                FROM telemetry.raw_telemetry
+                WHERE ${orConditions.join(" OR ")}
+                GROUP BY deviceId
+            `,
+            query_params,
+            format: "JSONEachRow"
+        });
+
+        const rows = await result.json();
+        for (const row of rows) {
+            previousRecords.set(row.deviceId, {
+                deviceId: row.deviceId,
+                timestamp: row.lastTimestamp
+            });
+        }
+    }
 
     return previousRecords;
 }
