@@ -70,3 +70,26 @@ During Phase 2 testing with 500 devices, we hit a ClickHouse server exception:
 `Poco::Exception. Code: 1000, HTML Form Exception: Too many form fields`
 This occurs because ClickHouse HTTP server limits the number of form parameters to 1000. Each device requires 2 query parameters, thus 500 devices exceeded the limit.
 **Resolution**: We resolved this by reducing the chunking batch size `BATCH_SIZE` to 100 (using 200 parameters per request), which remains highly performant while operating safely below ClickHouse parameter limit boundaries.
+
+---
+
+## Phase 3: Fix Redundant In-Memory Sorting of Telemetry Data
+- **Target File**: [analyticService.js](file:///c:/Users/Rishi/Downloads/clickhouse/src/services/analyticService.js)
+- **Refactoring Details**:
+  - Identified that the only call site for `buildWindowPoints` is inside `calculateWindowAnalytics` (which is called by `computeAndStoreWindow`).
+  - Traced that `computeAndStoreWindow` retrieves raw telemetry records directly from a ClickHouse query on `telemetry.raw_telemetry` that contains an explicit `ORDER BY timestamp` clause.
+  - Confirmed that since the input rows are guaranteed to be sorted by ClickHouse, the JS-side sorting `points.sort(...)` inside `buildWindowPoints` was redundant and wasting CPU cycles ($O(N \log N)$ comparison and `Date` object instantiation overhead).
+  - Deleted the redundant `points.sort` block.
+  - Implemented an $O(N)$ safety assertion check inside `buildWindowPoints` that verifies the input rows are sorted by timestamp and throws a fast-failing error if any out-of-order points are detected. This ensures that any future changes/call sites that violate the sorted invariant are caught immediately without silently outputting incorrect metrics.
+  - Exported `buildWindowPoints` from [analyticService.js](file:///c:/Users/Rishi/Downloads/clickhouse/src/services/analyticService.js) to allow isolated unit testing.
+
+### Phase 3 Gate
+- **Status**: **PASSED**
+- **Automated Test Run**: Created and ran `node scripts/testBuildWindowPoints.js` which verified:
+  1. Correctly ordered inputs are processed successfully and their chronological order is preserved.
+  2. Out-of-order inputs trigger the safety check and throw an error.
+  3. Duplicated timestamps are successfully deduplicated without triggering the out-of-order check.
+  4. Boundary synthetic point logic inserts the starting boundary point correctly.
+  5. Empty arrays and single-point arrays are handled correctly.
+- **Overall Regression Check**: Ran `node scripts/testQuantify.js` and confirmed that output distance (80.438 km) and stop count (19) match the exact values calculated prior to the fix.
+
