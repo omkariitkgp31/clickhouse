@@ -411,93 +411,7 @@ async function getReportStopMetrics(deviceId, from, to) {
     );
 }
 
-// function buildWindowPoints(rows, windowStart, context = {}) {
-//     const points = [];
-
-//     for (const row of rows) {
-//         const point = {
-//             ...normalizePoint(row),
-//             synthetic: false
-//         };
-
-//         const last =
-//             points[points.length - 1];
-
-//         if (
-//             last &&
-//             last.timestamp === point.timestamp &&
-//             last.lat === point.lat &&
-//             last.long === point.long &&
-//             last.speed === point.speed &&
-//             last.ignition === point.ignition
-//         ) {
-//             continue;
-//         }
-
-//         if (
-//             last &&
-//             getTimestampMs(point.timestamp) < getTimestampMs(last.timestamp)
-//         ) {
-//             throw new Error(
-//                 `[Analytics] buildWindowPoints input is out of order: ${point.timestamp} is before ${last.timestamp}`
-//             );
-//         }
-
-//         points.push(point);
-//     }
-
-//     // points are pre-sorted by ClickHouse ORDER BY timestamp — see computeAndStoreWindow query
-
-//     if (!context.previousPoint) {
-//         return points;
-//     }
-
-//     const previousPoint =
-//         normalizePoint(context.previousPoint);
-
-//     if (
-//         getTimestampMs(previousPoint.timestamp) >=
-//         getTimestampMs(windowStart)
-//     ) {
-//         return points;
-//     }
-
-//     const syntheticPoint = {
-//         ...previousPoint,
-//         timestamp: windowStart,
-//         synthetic: true
-//     };
-
-//     if (
-//         points.length === 0 ||
-//         getTimestampMs(points[0].timestamp) >
-//         getTimestampMs(windowStart)
-//     ) {
-//         points.unshift(syntheticPoint);
-//     }
-
-//     return points;
-// }
-
-// --- TEMPORARY PERFORMANCE WRAPPER ---
-let totalBuildPointsTimeMs = 0;
-let buildPointsCallCount = 0;
-
 function buildWindowPoints(rows, windowStart, context = {}) {
-    const startTime = performance.now();
-
-    const result = _buildWindowPointsInternal(rows, windowStart, context);
-
-    const duration = performance.now() - startTime;
-    totalBuildPointsTimeMs += duration;
-    buildPointsCallCount++;
-
-    console.log(`[Timer] Call #${buildPointsCallCount} took ${duration.toFixed(4)}ms. Total: ${totalBuildPointsTimeMs.toFixed(4)}ms`);
-
-    return result;
-}
-
-function _buildWindowPointsInternal(rows, windowStart, context = {}) {
     const points = [];
 
     for (const row of rows) {
@@ -564,6 +478,8 @@ function _buildWindowPointsInternal(rows, windowStart, context = {}) {
 
     return points;
 }
+
+
 
 function aggregateWindows(
     deviceId,
@@ -1226,3 +1142,5 @@ module.exports = {
     computeAndStoreWindow,
     buildWindowPoints
 };
+
+

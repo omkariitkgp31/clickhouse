@@ -11,4 +11,11 @@ scripts/generateReport.py
 scripts/optimization info.md
 scripts/testPhase1.js
 scripts/testPhase2.js  
+scripts/testCleanup.js
+scripts/testBuildWindowPoints.js
+scripts/benchmarkCompute.js
+scripts/checkDirtyWindows.js
 MANUAL_TESTING_GUIDE.md
+IMPLEMENTATION_REPORT.md
+ARCHITECTURE.md
+Project_Optimization_Report.docx

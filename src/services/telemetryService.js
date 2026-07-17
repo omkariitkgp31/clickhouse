@@ -79,13 +79,7 @@ function ingest(packet) {
         receivedAt: new Date().toISOString(),
     });
 }
-//pagination is defined as the process of dividing a large set of data into smaller,
-//  more manageable chunks or pages. In this code, the getPagination function is used
-// to determine the limit and offset values for pagination based on the provided limit 
-// and offset parameters. The limit specifies the maximum number of records to retrieve per 
-// page, while the offset indicates the starting point for retrieving records.
-//  The function ensures that the limit is within a valid range and returns an object
-//  containing the calculated limit and offset values.
+
 function getPagination(limit, offset) {//fnc is used to find the limit and offset values
     const parsedLimit =
         Number(limit);
@@ -105,11 +99,7 @@ function getPagination(limit, offset) {//fnc is used to find the limit and offse
     };
 }
 
-//this function if used for reading the daat from clickhouse database, 
-// it takes the query parameters from the client and constructs a SQL query 
-// to retrieve the telemetry data based on the specified conditions. 
-// It uses the clickhouse.query method to execute the query and returns 
-// the result in JSON format.
+
 async function getTelemetry(deviceId, from, to, limit, offset) {
     const conditions = [];
     const queryParams = {};
@@ -164,14 +154,6 @@ async function getTelemetry(deviceId, from, to, limit, offset) {
     return result.json();
 }
 
-/**
- * Ingests an array of raw telemetry packets.
- * Validates each record individually â€” valid ones are buffered,
- * invalid ones are collected and returned to the caller.
- *
- * @param {Array} packets  - Array of raw telemetry objects
- * @returns {{ inserted: number, failed: Array }} summary
- */
 function ingestBulk(packets) {
     if (!Array.isArray(packets) || packets.length === 0) {
         const error = new Error("Payload must be a non-empty array");
@@ -215,3 +197,5 @@ module.exports = {
     getTelemetry,
     validateTelemetry
 };
+
+

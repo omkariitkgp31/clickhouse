@@ -12,24 +12,10 @@ function nextVersion() {//this function generates a unique version number for ea
 }
 
 function addDirtyWindow(windows, deviceId, timestamp, createdAt) {
-    /**
-     * this func adds a dirty window entry to the windows map for 
-     * a specific device and timestamp. It calculates the start and 
-     * end of the 15-minute window that the timestamp falls into, 
-     * constructs a unique key for the window, and stores an object 
-     * representing the dirty window in the windows map. The object 
-     * includes details such as deviceId, windowStart, windowEnd, status, 
-     * version, createdAt, and processedAt.
-     */
+
     const window =
-        getWindowBounds(timestamp);/**
-         * this func calculates the start and end of the 15-minute window
-         that the timestamp falls into, the getWindowBounds function takes a 
-         timestamp as input and returns an object containing the windowStart 
-         and windowEnd properties, which represent the start and end of the 
-         15-minute window that the timestamp falls into. This is used to group
-          telemetry records into discrete time windows for processing and analysis.
-         */ 
+        getWindowBounds(timestamp);
+
 
     const key =
         `${deviceId}|${window.windowStart}`;
@@ -64,11 +50,8 @@ function addDirtyWindowRange(
     const currentStart =
         toDate(currentWindow.windowStart).getTime();
 
-   //this is th loop condition,
-        //it iterates through the 15-minute windows between 
-        //the previous and current timestamps, adding a dirty window
-        //entry for each window to the windows map.
-      for (   let start = previousStart + FIFTEEN_MINUTES_MS;
+
+    for (let start = previousStart + FIFTEEN_MINUTES_MS;
         start <= currentStart;
         start += FIFTEEN_MINUTES_MS
     ) {
@@ -81,9 +64,7 @@ function addDirtyWindowRange(
     }
 }
 
-function groupRecordsByDevice(records) {//this fnc rec the data and gps them by device id, it returns a map
-    // where each key is a deviceId and the value is an array of records for 
-    // that device, sorted by timestamp.
+function groupRecordsByDevice(records) {
     const groups = new Map();
 
     for (const record of records) {
@@ -297,3 +278,5 @@ module.exports = {
     markDirty,
     markProcessed
 };
+
+
