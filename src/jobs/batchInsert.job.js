@@ -6,16 +6,6 @@ const BATCH_SIZE = 5000;
 const FLUSH_INTERVAL = 10000;
 
 let isFlushing = false;
-/**
- * this flushBufferedTelemetry() is responsible for flushing the buffered
- * telemetry data to ClickHouse in batches. It checks if a flush operation 
- * is already in progress and returns if so. If the buffer is empty, it also returns. 
- * Otherwise, it retrieves a batch of telemetry records from the buffer, inserts 
- * them into ClickHouse, removes them from the buffer, and marks the corresponding 
- * analytics windows as dirty. It logs the progress and any errors encountered during 
- * the process.
- * @returns 
- */ 
 async function flushBufferedTelemetry() {//moving the accumulated data from a temporary storage to its final destination, and then clearing the temporary storage.
     if (isFlushing) {
         return;
