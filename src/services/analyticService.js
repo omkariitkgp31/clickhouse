@@ -434,14 +434,19 @@ function buildWindowPoints(rows, windowStart, context = {}) {
             continue;
         }
 
+        if (
+            last &&
+            getTimestampMs(point.timestamp) < getTimestampMs(last.timestamp)
+        ) {
+            throw new Error(
+                `[Analytics] buildWindowPoints input is out of order: ${point.timestamp} is before ${last.timestamp}`
+            );
+        }
+
         points.push(point);
     }
 
-    points.sort(
-        (a, b) =>
-            getTimestampMs(a.timestamp) -
-            getTimestampMs(b.timestamp)
-    );
+    // points are pre-sorted by ClickHouse ORDER BY timestamp — see computeAndStoreWindow query
 
     if (!context.previousPoint) {
         return points;
@@ -473,6 +478,8 @@ function buildWindowPoints(rows, windowStart, context = {}) {
 
     return points;
 }
+
+
 
 function aggregateWindows(
     deviceId,
@@ -1132,5 +1139,8 @@ async function computeAndStoreWindow(
 
 module.exports = {
     getAnalytics,
-    computeAndStoreWindow
+    computeAndStoreWindow,
+    buildWindowPoints
 };
+
+

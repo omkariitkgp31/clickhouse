@@ -12,24 +12,10 @@ function nextVersion() {//this function generates a unique version number for ea
 }
 
 function addDirtyWindow(windows, deviceId, timestamp, createdAt) {
-    /**
-     * this func adds a dirty window entry to the windows map for 
-     * a specific device and timestamp. It calculates the start and 
-     * end of the 15-minute window that the timestamp falls into, 
-     * constructs a unique key for the window, and stores an object 
-     * representing the dirty window in the windows map. The object 
-     * includes details such as deviceId, windowStart, windowEnd, status, 
-     * version, createdAt, and processedAt.
-     */
+
     const window =
-        getWindowBounds(timestamp);/**
-         * this func calculates the start and end of the 15-minute window
-         that the timestamp falls into, the getWindowBounds function takes a 
-         timestamp as input and returns an object containing the windowStart 
-         and windowEnd properties, which represent the start and end of the 
-         15-minute window that the timestamp falls into. This is used to group
-          telemetry records into discrete time windows for processing and analysis.
-         */ 
+        getWindowBounds(timestamp);
+
 
     const key =
         `${deviceId}|${window.windowStart}`;
@@ -64,11 +50,8 @@ function addDirtyWindowRange(
     const currentStart =
         toDate(currentWindow.windowStart).getTime();
 
-   //this is th loop condition,
-        //it iterates through the 15-minute windows between 
-        //the previous and current timestamps, adding a dirty window
-        //entry for each window to the windows map.
-      for (   let start = previousStart + FIFTEEN_MINUTES_MS;
+
+    for (let start = previousStart + FIFTEEN_MINUTES_MS;
         start <= currentStart;
         start += FIFTEEN_MINUTES_MS
     ) {
@@ -81,9 +64,7 @@ function addDirtyWindowRange(
     }
 }
 
-function groupRecordsByDevice(records) {//this fnc rec the data and gps them by device id, it returns a map
-    // where each key is a deviceId and the value is an array of records for 
-    // that device, sorted by timestamp.
+function groupRecordsByDevice(records) {
     const groups = new Map();
 
     for (const record of records) {
@@ -114,46 +95,56 @@ async function getPreviousRecords(deviceRecordsByDevice) {
     /**
      * this function retrieves the most recent telemetry record
      * for each device before the first record in the provided 
-     * deviceRecordsByDevice map.
-     * 
+     * deviceRecordsByDevice map, using a batched query to avoid N+1 database calls.
      */
-    const previousRecords = new Map();//this holds data in form of key val 
-    await Promise.all(
-        Array.from(deviceRecordsByDevice.entries())
-            .map(async ([deviceId, records]) => {
-                const firstTimestamp =
-                    records[0].timestamp;
+    const previousRecords = new Map();
+    const entries = Array.from(deviceRecordsByDevice.entries());
 
-                const result =
-                    await clickhouse.query({
-                        query: `
-                            SELECT
-                                deviceId,
-                                timestamp
-                            FROM telemetry.raw_telemetry
-                            WHERE deviceId = {deviceId:String}
-                              AND timestamp < parseDateTime64BestEffort({timestamp:String}, 3) //this line converts the provided timestamp string into a DateTime64 format with 3 decimal places of precision, which is suitable for comparison with the timestamp column in the ClickHouse database. 
-                            ORDER BY timestamp DESC
-                            LIMIT 1
-                        `,
-                        query_params: {
-                            deviceId,
-                            timestamp: firstTimestamp
-                        },
-                        format: "JSONEachRow"
-                    });
+    if (entries.length === 0) {
+        return previousRecords;
+    }
 
-                const rows =
-                    await result.json();
+    const BATCH_SIZE = 100; // Limit OR-conditions chunk size to avoid exceeding ClickHouse HTTP parameters limit (Poco Form Limit)
 
-                if (rows.length > 0) {
-                    previousRecords.set(
-                        deviceId,
-                        rows[0]
-                    );
-                }
-            })
-    );
+    for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+        const chunk = entries.slice(i, i + BATCH_SIZE);
+        const query_params = {};
+        const orConditions = [];
+
+        chunk.forEach(([deviceId, records], index) => {
+            const firstTimestamp = records[0].timestamp;
+            const devParam = `deviceId${index}`;
+            const tsParam = `timestamp${index}`;
+
+            query_params[devParam] = deviceId;
+            query_params[tsParam] = firstTimestamp;
+
+            orConditions.push(
+                `(deviceId = {${devParam}:String} AND timestamp < parseDateTime64BestEffort({${tsParam}:String}, 3))`
+            );
+        });
+
+        const result = await clickhouse.query({
+            query: `
+                SELECT
+                    deviceId,
+                    max(timestamp) as lastTimestamp
+                FROM telemetry.raw_telemetry
+                WHERE ${orConditions.join(" OR ")}
+                GROUP BY deviceId
+            `,
+            query_params,
+            format: "JSONEachRow"
+        });
+
+        const rows = await result.json();
+        for (const row of rows) {
+            previousRecords.set(row.deviceId, {
+                deviceId: row.deviceId,
+                timestamp: row.lastTimestamp
+            });
+        }
+    }
 
     return previousRecords;
 }
@@ -287,3 +278,5 @@ module.exports = {
     markDirty,
     markProcessed
 };
+
+
