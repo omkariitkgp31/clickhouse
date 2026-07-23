@@ -1,0 +1,6 @@
+# Python dependencies for the standalone telemetry report document generator.
+# Keeping them here isolates document tooling from the Node.js API runtime.
+python-docx
+reportlab
+python-dotenv
+pytest

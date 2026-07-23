@@ -1,0 +1,104 @@
+{
+  "metrics": {
+    "deviceId": "demo-device-042",
+    "reportPeriod": {
+      "from": "2026-07-01T08:00:00.000Z",
+      "to": "2026-07-01T08:45:00.000Z"
+    },
+    "windows": [
+      {
+        "windowStart": "2026-07-01T08:00:00.000Z",
+        "windowEnd": "2026-07-01T08:15:00.000Z",
+        "distanceKm": 11.2,
+        "engineRunMinutes": 15,
+        "idleMinutes": 2,
+        "stops": 0,
+        "avgSpeed": 44.8,
+        "maxSpeed": 63.4
+      },
+      {
+        "windowStart": "2026-07-01T08:15:00.000Z",
+        "windowEnd": "2026-07-01T08:30:00.000Z",
+        "distanceKm": 8.4,
+        "engineRunMinutes": 15,
+        "idleMinutes": 7,
+        "stops": 1,
+        "avgSpeed": 31.2,
+        "maxSpeed": 56.8
+      },
+      {
+        "windowStart": "2026-07-01T08:30:00.000Z",
+        "windowEnd": "2026-07-01T08:45:00.000Z",
+        "distanceKm": 14.6,
+        "engineRunMinutes": 15,
+        "idleMinutes": 1,
+        "stops": 0,
+        "avgSpeed": 58.4,
+        "maxSpeed": 92.1
+      }
+    ],
+    "totals": {
+      "distanceKm": 34.2,
+      "engineRunMinutes": 45,
+      "idleMinutes": 10,
+      "stops": 1,
+      "avgSpeed": 45.1,
+      "maxSpeed": 92.1,
+      "sampleCount": 180
+    }
+  },
+  "insights": {
+    "reportTitle": "Demo Device Daily Telemetry Report",
+    "executiveSummary": "The device completed a 34.2 km journey across three reporting windows. Engine use was continuous, with a short idle period and one recorded stop. A brief high-speed interval merits routine review.",
+    "keyMetrics": {
+      "distanceKm": 34.2,
+      "engineRunMinutes": 45,
+      "idleMinutes": 10,
+      "stops": 1,
+      "avgSpeed": 45.1,
+      "maxSpeed": 92.1
+    },
+    "insights": [
+      {
+        "title": "Consistent utilisation",
+        "detail": "The engine remained active throughout the 45-minute period.",
+        "severity": "low"
+      },
+      {
+        "title": "Idle time concentration",
+        "detail": "Most idle time occurred in the middle reporting window.",
+        "severity": "medium"
+      }
+    ],
+    "anomalies": [
+      {
+        "title": "Elevated peak speed",
+        "detail": "A maximum speed of 92.1 km/h was recorded in the final window.",
+        "severity": "high"
+      },
+      {
+        "title": "Extended idle period",
+        "detail": "Seven idle minutes were recorded between 08:15 and 08:30 UTC.",
+        "severity": "medium"
+      }
+    ],
+    "recommendations": [
+      "Review the final-window route and confirm the elevated speed aligns with fleet policy.",
+      "Investigate the middle-window idle period if it is not operationally required."
+    ],
+    "notableWindows": [
+      {
+        "windowStart": "2026-07-01T08:15:00.000Z",
+        "windowEnd": "2026-07-01T08:30:00.000Z",
+        "summary": "The device recorded its only stop and the greatest idle duration.",
+        "severity": "medium"
+      },
+      {
+        "windowStart": "2026-07-01T08:30:00.000Z",
+        "windowEnd": "2026-07-01T08:45:00.000Z",
+        "summary": "The fastest interval also produced the highest distance travelled.",
+        "severity": "high"
+      }
+    ]
+  }
+}
